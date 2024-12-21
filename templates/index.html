@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Text-to-Speech Player</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            margin-bottom: 10px;
+            padding: 5px;
+        }
+        select {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            margin-right: 10px;
+        }
+        progress {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <textarea id="textInput"></textarea>
+    <progress id="progressBar" value="0" max="100"></progress>
+    <select id="voiceSelect">
+        <option value="">Loading voices...</option>
+    </select>
+    <button id="playButton">Play</button>
+    <button id="stopButton" disabled>Stop</button>
+    <button id="pauseButton" disabled>Pause</button>
+    <script>
+        // Global utility functions
+        function setProgress(value) {
+            document.getElementById('progressBar').value = value;
+        }
+        
+        function setButtonState(buttonId, enabled) {
+            document.getElementById(buttonId).disabled = !enabled;
+        }
+        
+        function setPauseButtonText(text) {
+            document.getElementById('pauseButton').innerText = text;
+        }
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Fetch voice options
+            try {
+                const response = await fetch('/voices');
+                const voices = await response.json();
+                const voiceSelect = document.getElementById('voiceSelect');
+                voiceSelect.innerHTML = voices.map(voice => 
+                    `<option value="${voice}">${voice}</option>`
+                ).join('');
+            } catch (error) {
+                console.error('Failed to load voices:', error);
+            }
+
+            const playButton = document.getElementById('playButton');
+            const stopButton = document.getElementById('stopButton');
+            const pauseButton = document.getElementById('pauseButton');
+            const textInput = document.getElementById('textInput');
+            const voiceSelect = document.getElementById('voiceSelect');
+
+            async function sendTTSRequest(action, text = '', voice = '') {
+                try {
+                    const response = await fetch('/tts', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ action, text, voice })
+                    });
+                    return await response.json();
+                } catch (error) {
+                    console.error('TTS request failed:', error);
+                    return { status: 'error', message: error.toString() };
+                }
+            }
+
+            playButton.addEventListener('click', async function() {
+                const text = textInput.value.trim();
+                const voice = voiceSelect.value;
+                
+                if (!text || !voice) {
+                    alert('Please enter text and select a voice');
+                    return;
+                }
+
+                const response = await sendTTSRequest('play', text, voice);
+                if (response.status === 'success') {
+                    setButtonState('playButton', false);
+                    setButtonState('stopButton', true);
+                    setButtonState('pauseButton', true);
+                } else {
+                    alert('Failed to start playback: ' + response.message);
+                }
+            });
+
+            stopButton.addEventListener('click', async function() {
+                const response = await sendTTSRequest('stop');
+                if (response.status === 'success') {
+                    setButtonState('playButton', true);
+                    setButtonState('stopButton', false);
+                    setButtonState('pauseButton', false);
+                    setProgress(0);
+                }
+            });
+
+            pauseButton.addEventListener('click', async function() {
+                const response = await sendTTSRequest('pause');
+                if (response.status === 'success') {
+                    const isPaused = response.paused;
+                    setPauseButtonText(isPaused ? 'Resume' : 'Pause');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
