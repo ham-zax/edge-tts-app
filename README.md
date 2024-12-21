@@ -1,6 +1,6 @@
 # Edge TTS GUI Player
 
-A cross-platform graphical user interface for text-to-speech conversion using Microsoft Edge's TTS engine and MPV player.
+A cross-platform desktop application for text-to-speech conversion using Microsoft Edge's TTS engine and MPV player for audio playback. It provides a user-friendly interface built with Python and web technologies to easily convert text to speech using a variety of English voices.
 
 ## Features
 - Text-to-speech conversion powered by Microsoft Edge TTS
@@ -53,6 +53,18 @@ MPV must be installed and accessible in your system PATH.
    # Using brew
    brew install mpv
 ```
+
+## Architecture
+
+The application follows a modular design with the following key components:
+
+- **`main.py`**: One of the main entry points for the application, responsible for initializing the core components (`Config`, `AudioPlayer`, `TTSCore`) and starting the user interface (`TTSUI`). It includes error handling for cases where voice options are not available or the application fails to start.
+- **`tts_app.py`**: Another main entry point for the application, providing similar initialization of core components and starting the user interface.
+- **`config.py`**: Handles application configuration (currently minimal).
+- **`tts_core.py`**: Implements the text-to-speech functionality using the `edge-tts` library. It provides methods to list available voices and generate audio files.
+- **`ui.py`**: Manages the user interface using the `webview` library. It sets up a local web server to serve the HTML frontend (`templates/index.html`) and handles communication between the frontend and backend using HTTP requests.
+- **`player.py`**: Handles audio playback using the MPV player. It manages the MPV process and provides methods to play, pause, and stop audio.
+- **`templates/index.html`**: The HTML frontend for the application, providing the user interface elements and interacting with the Python backend via API calls.
 
 ## Usage
 1. Clone the repository:
