@@ -38,9 +38,6 @@ class TTSRequestHandler(http.server.SimpleHTTPRequestHandler):
             elif action == 'stop' and self.tts_ui:
                 self.tts_ui.stop_audio()
                 response = {'status': 'success'}
-            elif action == 'pause' and self.tts_ui:
-                self.tts_ui.pause_audio()
-                response = {'status': 'success', 'paused': self.tts_ui.player.is_paused}
             else:
                 response = {'status': 'error', 'message': 'Invalid action'}
             
@@ -127,8 +124,6 @@ class TTSUI:
 
         self.window.evaluate_js('setButtonState("playButton", false)')
         self.window.evaluate_js('setButtonState("stopButton", true)')
-        self.window.evaluate_js('setButtonState("pauseButton", true)')
-        self.window.evaluate_js('setPauseButtonText("Pause")')
         self.player.is_paused = False
 
         self.playback_thread = threading.Thread(target=self._play_audio_thread, args=(text, voice))
@@ -149,7 +144,6 @@ class TTSUI:
             self.is_playing = False
             self.window.evaluate_js('setButtonState("playButton", true)')
             self.window.evaluate_js('setButtonState("stopButton", false)')
-            self.window.evaluate_js('setButtonState("pauseButton", false)')
             self.window.evaluate_js('setProgress(0)')
 
     def stop_audio(self):
@@ -157,12 +151,4 @@ class TTSUI:
         self.is_playing = False
         self.window.evaluate_js('setButtonState("playButton", true)')
         self.window.evaluate_js('setButtonState("stopButton", false)')
-        self.window.evaluate_js('setButtonState("pauseButton", false)')
         self.window.evaluate_js('setProgress(0)')
-
-    def pause_audio(self):
-        self.player.pause_resume()
-        if self.player.is_paused:
-            self.window.evaluate_js('setPauseButtonText("Resume")')
-        else:
-            self.window.evaluate_js('setPauseButtonText("Pause")')

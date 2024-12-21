@@ -36,7 +36,6 @@
     </select>
     <button id="playButton">Play</button>
     <button id="stopButton" disabled>Stop</button>
-    <button id="pauseButton" disabled>Pause</button>
     <script>
         // Global utility functions
         function setProgress(value) {
@@ -45,10 +44,6 @@
         
         function setButtonState(buttonId, enabled) {
             document.getElementById(buttonId).disabled = !enabled;
-        }
-        
-        function setPauseButtonText(text) {
-            document.getElementById('pauseButton').innerText = text;
         }
 
         document.addEventListener('DOMContentLoaded', async function() {
@@ -66,7 +61,6 @@
 
             const playButton = document.getElementById('playButton');
             const stopButton = document.getElementById('stopButton');
-            const pauseButton = document.getElementById('pauseButton');
             const textInput = document.getElementById('textInput');
             const voiceSelect = document.getElementById('voiceSelect');
 
@@ -99,7 +93,6 @@
                 if (response.status === 'success') {
                     setButtonState('playButton', false);
                     setButtonState('stopButton', true);
-                    setButtonState('pauseButton', true);
                 } else {
                     alert('Failed to start playback: ' + response.message);
                 }
@@ -110,16 +103,7 @@
                 if (response.status === 'success') {
                     setButtonState('playButton', true);
                     setButtonState('stopButton', false);
-                    setButtonState('pauseButton', false);
                     setProgress(0);
-                }
-            });
-
-            pauseButton.addEventListener('click', async function() {
-                const response = await sendTTSRequest('pause');
-                if (response.status === 'success') {
-                    const isPaused = response.paused;
-                    setPauseButtonText(isPaused ? 'Resume' : 'Pause');
                 }
             });
         });

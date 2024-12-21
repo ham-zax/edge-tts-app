@@ -10,7 +10,6 @@ class AudioPlayer:
         self.audio_file = None
         self.ipc_socket = None
         self.is_playing = False
-        self.is_paused = False
 
     def check_mpv_installed(self):
         try:
@@ -67,27 +66,3 @@ class AudioPlayer:
                     os.unlink(self.ipc_socket)
             finally:
                 self.ipc_socket = None
-
-    def pause_resume(self):
-        if self.mpv_process and self.ipc_socket and os.path.exists(self.ipc_socket):
-            try:
-                if os.name == 'nt':
-                    import win32file
-                    handle = win32file.CreateFile(
-                        self.ipc_socket,
-                        win32file.GENERIC_WRITE,
-                        0, None,
-                        win32file.OPEN_EXISTING,
-                        0, None
-                    )
-                    command = json.dumps({"command": ["cycle", "pause"]}) + '\n'
-                    win32file.WriteFile(handle, command.encode())
-                    win32file.CloseHandle(handle)
-                else:
-                    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
-                        client.connect(self.ipc_socket)
-                        command = {"command": ["cycle", "pause"]}
-                        client.sendall((json.dumps(command) + '\n').encode())
-                self.is_paused = not self.is_paused
-            except (FileNotFoundError, ConnectionRefusedError) as e:
-                print(f"Error sending pause command: {e}")
