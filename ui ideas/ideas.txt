@@ -1,0 +1,21 @@
+Features
+Multiple Voices and Languages
+Over 400 neural network voices
+Support for 100+ languages and regional variants
+Natural speech synthesis effect
+Flexible Voice Control
+Adjustable speech rate (-50% to +100%)
+Pitch control (-50Hz to +50Hz)
+Volume control (-50% to +50%)
+Boundary type selection (sentence/word)
+Rich Output Options
+Support for MP3 format export
+Real-time speech synthesis streaming
+Asynchronous conversion and playback
+Optional JSON metadata export
+Optional SRT subtitle export
+Cross-platform file export support (iOS/macOS)
+Development Tools
+Command-line tool for quick testing and batch processing
+Native GUI application with visual configuration
+Detailed API documentation and usage examples
