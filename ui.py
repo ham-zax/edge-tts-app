@@ -18,7 +18,24 @@ class TTSRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            self.wfile.write(json.dumps(self.voice_options).encode())
+            
+            # Group voices by localization
+            grouped_voices = {}
+            for voice in self.voice_options:
+                # Assuming voice format is "en-US-Standard-A"
+                parts = voice.split('-')
+                if len(parts) >= 2:
+                    locale = f"{parts[0]}-{parts[1]}"  # e.g., "en-US"
+                    voice_type = '-'.join(parts[2:])   # e.g., "Standard-A"
+                    
+                    if locale not in grouped_voices:
+                        grouped_voices[locale] = []
+                    grouped_voices[locale].append({
+                        'id': voice,
+                        'name': voice_type
+                    })
+            
+            self.wfile.write(json.dumps(grouped_voices).encode())
             return
         return super().do_GET()
 

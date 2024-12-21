@@ -3,6 +3,7 @@ import os
 import tempfile
 import socket
 import json
+import time
 
 class AudioPlayer:
     def __init__(self):
@@ -10,6 +11,16 @@ class AudioPlayer:
         self.audio_file = None
         self.ipc_socket = None
         self.is_playing = False
+        self.is_paused = False
+        self._cleanup_resources()
+
+    def _cleanup_resources(self):
+        """Clean up any leftover resources"""
+        if self.ipc_socket and os.path.exists(self.ipc_socket):
+            try:
+                os.unlink(self.ipc_socket)
+            except Exception as e:
+                print(f"Warning: Failed to clean up socket {self.ipc_socket}: {e}")
 
     def check_mpv_installed(self):
         try:
@@ -24,16 +35,19 @@ class AudioPlayer:
 
     def play(self, audio_file):
         if not self.check_mpv_installed():
-            print("MPV Error: MPV not found. Please ensure it is installed and in your PATH.")
-            return
+            raise RuntimeError("MPV not found. Please ensure it is installed and in your PATH.")
 
+        self._cleanup_resources()
         self.audio_file = audio_file
+
         try:
             self.ipc_socket = os.path.join(tempfile.gettempdir(), f'mpv-socket-{os.getpid()}')
-            if os.path.exists(self.ipc_socket):
-                os.unlink(self.ipc_socket)
-
+            
             creation_flags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
+            startupinfo = subprocess.STARTUPINFO() if os.name == 'nt' else None
+            if startupinfo:
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+
             self.mpv_process = subprocess.Popen([
                 "mpv",
                 "--no-terminal",
@@ -44,25 +58,41 @@ class AudioPlayer:
                 "--input-ipc-client=",
                 self.audio_file
             ], creationflags=creation_flags,
-               startupinfo=(subprocess.STARTUPINFO() if os.name == 'nt' else None))
+               startupinfo=startupinfo)
+            
+            # Wait briefly to ensure process started successfully
+            time.sleep(0.1)
+            if self.mpv_process.poll() is not None:
+                raise RuntimeError("MPV process failed to start")
+            
             self.is_playing = True
-        except FileNotFoundError:
-            print("Error: mpv not found. Please ensure it is installed and in your PATH.")
+            self.is_paused = False
+
         except Exception as e:
-            print(f"Error playing audio with mpv: {e}")
+            self._cleanup_resources()
+            self.mpv_process = None
+            raise RuntimeError(f"Failed to start playback: {str(e)}")
 
     def stop(self):
-        if self.mpv_process:
-            self.mpv_process.terminate()
-            self.mpv_process = None
-        self.is_playing = False
-        self.is_paused = False
-        if self.audio_file:
-            os.remove(self.audio_file)
-            self.audio_file = None
-        if self.ipc_socket:
-            try:
-                if os.path.exists(self.ipc_socket):
-                    os.unlink(self.ipc_socket)
-            finally:
-                self.ipc_socket = None
+        try:
+            if self.mpv_process:
+                self.mpv_process.terminate()
+                try:
+                    self.mpv_process.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    self.mpv_process.kill()
+                self.mpv_process = None
+        finally:
+            self.is_playing = False
+            self.is_paused = False
+            if self.audio_file:
+                try:
+                    os.remove(self.audio_file)
+                except Exception as e:
+                    print(f"Warning: Failed to remove audio file: {e}")
+                self.audio_file = None
+            self._cleanup_resources()
+
+    def __del__(self):
+        """Ensure resources are cleaned up"""
+        self.stop()

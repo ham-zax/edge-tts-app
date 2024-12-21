@@ -31,9 +31,14 @@
 <body>
     <textarea id="textInput"></textarea>
     <progress id="progressBar" value="0" max="100"></progress>
-    <select id="voiceSelect">
-        <option value="">Loading voices...</option>
-    </select>
+    <div class="voice-selection">
+        <select id="localeSelect" onchange="updateVoices()">
+            <option value="">Select Language</option>
+        </select>
+        <select id="voiceSelect">
+            <option value="">Select Voice</option>
+        </select>
+    </div>
     <button id="playButton">Play</button>
     <button id="stopButton" disabled>Stop</button>
     <script>
@@ -46,23 +51,58 @@
             document.getElementById(buttonId).disabled = !enabled;
         }
 
-        document.addEventListener('DOMContentLoaded', async function() {
-            // Fetch voice options
-            try {
-                const response = await fetch('/voices');
-                const voices = await response.json();
-                const voiceSelect = document.getElementById('voiceSelect');
-                voiceSelect.innerHTML = voices.map(voice => 
-                    `<option value="${voice}">${voice}</option>`
-                ).join('');
-            } catch (error) {
-                console.error('Failed to load voices:', error);
+        let voicesData = {};
+
+        async function loadVoices() {
+            const response = await fetch('/voices');
+            voicesData = await response.json();
+            
+            const localeSelect = document.getElementById('localeSelect');
+            localeSelect.innerHTML = '<option value="">Select Language</option>';
+            
+            for (const locale in voicesData) {
+                const option = document.createElement('option');
+                option.value = locale;
+                option.textContent = locale;
+                localeSelect.appendChild(option);
             }
+        }
+
+        function updateVoices() {
+            const localeSelect = document.getElementById('localeSelect');
+            const voiceSelect = document.getElementById('voiceSelect');
+            const selectedLocale = localeSelect.value;
+            
+            voiceSelect.innerHTML = '<option value="">Select Voice</option>';
+            
+            if (selectedLocale && voicesData[selectedLocale]) {
+                voicesData[selectedLocale].forEach(voice => {
+                    const option = document.createElement('option');
+                    option.value = voice.id;
+                    option.textContent = voice.name;
+                    voiceSelect.appendChild(option);
+                });
+            }
+        }
+
+        // Load voices when page loads
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadVoices();
+
+            // Set the 3rd language as selected
+            const localeSelect = document.getElementById('localeSelect');
+            localeSelect.selectedIndex = 11;
+            updateVoices();
+
+            // Add a delay before selecting the first voice
+            setTimeout(function() {
+                const voiceSelect = document.getElementById('voiceSelect');
+                voiceSelect.selectedIndex = 1;
+            }, 0);
 
             const playButton = document.getElementById('playButton');
             const stopButton = document.getElementById('stopButton');
             const textInput = document.getElementById('textInput');
-            const voiceSelect = document.getElementById('voiceSelect');
 
             async function sendTTSRequest(action, text = '', voice = '') {
                 try {
